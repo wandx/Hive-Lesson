@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:playground/model/post.dart';
+import 'package:playground/screen/post_add_screen.dart';
 
-class PostDetailScreen extends StatelessWidget {
+class PostDetailScreen extends StatefulWidget {
   const PostDetailScreen({
     Key? key,
     required this.post,
@@ -10,10 +11,44 @@ class PostDetailScreen extends StatelessWidget {
   final Post post;
 
   @override
+  State<PostDetailScreen> createState() => _PostDetailScreenState();
+}
+
+class _PostDetailScreenState extends State<PostDetailScreen> {
+  late Post _post;
+
+  @override
+  void initState() {
+    _post = widget.post;
+    super.initState();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(post.title),
+        title: Text(_post.title),
+        actions: [
+          IconButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => PostAddScreen(
+                    post: _post,
+                  ),
+                ),
+              ).then((result) {
+                if (result != null && result is Post) {
+                  setState(() {
+                    _post = result;
+                  });
+                }
+              });
+            },
+            icon: Icon(Icons.edit),
+          ),
+        ],
       ),
       body: Container(
         padding: EdgeInsets.all(20),
@@ -21,13 +56,13 @@ class PostDetailScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              post.title,
+              _post.title,
               style: TextStyle(
                 fontWeight: FontWeight.bold,
               ),
             ),
             Text(
-              post.author,
+              _post.author,
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.normal,
@@ -35,7 +70,7 @@ class PostDetailScreen extends StatelessWidget {
               ),
             ),
             SizedBox(height: 20),
-            Text(post.content),
+            Text(_post.content),
           ],
         ),
       ),

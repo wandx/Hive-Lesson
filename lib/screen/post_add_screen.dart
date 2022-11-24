@@ -4,7 +4,12 @@ import 'package:playground/model/constant.dart' as constant;
 import 'package:playground/model/post.dart';
 
 class PostAddScreen extends StatefulWidget {
-  const PostAddScreen({Key? key}) : super(key: key);
+  const PostAddScreen({
+    Key? key,
+    this.post,
+  }) : super(key: key);
+
+  final Post? post;
 
   @override
   State<PostAddScreen> createState() => _PostAddScreenState();
@@ -15,6 +20,17 @@ class _PostAddScreenState extends State<PostAddScreen> {
   final _author = TextEditingController(text: 'Wandy');
   final _content = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+
+  @override
+  void initState() {
+    super.initState();
+
+    if (widget.post != null) {
+      _title.text = widget.post!.title;
+      _author.text = widget.post!.author;
+      _content.text = widget.post!.content;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -76,9 +92,9 @@ class _PostAddScreenState extends State<PostAddScreen> {
 
                       final isOpen = Hive.isBoxOpen(constant.postBox);
 
-                      if(isOpen){
+                      if (isOpen) {
                         openBox = Hive.box(constant.postBox);
-                      }else{
+                      } else {
                         openBox = await Hive.openBox(constant.postBox);
                       }
 
@@ -87,22 +103,50 @@ class _PostAddScreenState extends State<PostAddScreen> {
                         _author.text,
                         _content.text,
                       );
-                      openBox.add(post).then(
-                        (id) {
+
+                      if (widget.post != null) {
+                        /// Edit mode
+                        openBox.put(widget.post!.id, post).then((_) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Post created with id $id'),
+                            const SnackBar(
+                              content: Text('Post Updated'),
                             ),
                           );
-                          Navigator.pop(context);
-                        },
-                      ).onError((error, stackTrace) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(error.toString()),
-                          ),
-                        );
-                      });
+                          Navigator.pop(
+                            context,
+                            Post(
+                              post.title,
+                              post.author,
+                              post.content,
+                              id: widget.post!.id,
+                            ),
+                          );
+                        }).onError((error, stackTrace) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(error.toString()),
+                            ),
+                          );
+                        });
+                      } else {
+                        /// Add mode
+                        openBox.add(post).then(
+                          (id) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Post created with id $id'),
+                              ),
+                            );
+                            Navigator.pop(context);
+                          },
+                        ).onError((error, stackTrace) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(error.toString()),
+                            ),
+                          );
+                        });
+                      }
                     }
                   },
                   child: const Text('Submit'),

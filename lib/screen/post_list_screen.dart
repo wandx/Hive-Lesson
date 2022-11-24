@@ -52,100 +52,101 @@ class _PostListScreenState extends State<PostListScreen> {
             ),
           )
               .then((value) async {
-            // await Hive.close();
-            late Box<Post> box;
-            if (Hive.isBoxOpen(c.postBox)) {
-              box = Hive.box(c.postBox);
-            } else {
-              box = await Hive.openBox(c.postBox);
-            }
-
-            _posts
-              ..clear()
-              ..addAll(box.values.map((e) {
-                final newPost = Post(
-                  e.title,
-                  e.author,
-                  e.content,
-                  id: e.key,
-                );
-                return newPost;
-              }).toList());
-            setState(() {});
+            _refreshData();
           });
         },
         child: const Icon(Icons.add),
       ),
-      body: ListView.separated(
-        itemBuilder: (context, i) => ListTile(
-          title: Text('${_posts[i].title} (${_posts[i].id})'),
-          subtitle: Text(_posts[i].author),
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => PostDetailScreen(
-                post: _posts[i],
+      body: Builder(builder: (context) {
+        if (_posts.isEmpty) {
+          return Center(child: Text('No Posts'));
+        }
+        return RefreshIndicator(
+          onRefresh: _refreshData,
+          child: ListView.separated(
+            itemBuilder: (context, i) => ListTile(
+              title: Text('${_posts[i].title} (${_posts[i].id})'),
+              subtitle: Text(_posts[i].author),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => PostDetailScreen(
+                    post: _posts[i],
+                  ),
+                ),
+              ).then((value) {
+                _refreshData();
+              }),
+              trailing: IconButton(
+                icon: Icon(Icons.delete),
+                onPressed: () async {
+                  await showDialog<bool?>(
+                    context: context,
+                    builder: (_) => AlertDialog(
+                      title: Text('Delete ${_posts[i].title} ?'),
+                      content: Text(
+                        'Are you sure want to delete ${_posts[i].title} ?',
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pop(context, false);
+                          },
+                          child: Text('No'),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pop(context, true);
+                          },
+                          child: Text('Yes'),
+                        ),
+                      ],
+                    ),
+                  ).then((result) async {
+                    if (result != null && result) {
+                      _delete(_posts[i].id);
+                    }
+                  });
+                },
               ),
             ),
+            separatorBuilder: (context, i) => Divider(),
+            itemCount: _posts.length,
           ),
-          trailing: IconButton(
-            icon: Icon(Icons.delete),
-            onPressed: () async {
-              await showDialog<bool?>(
-                context: context,
-                builder: (_) => AlertDialog(
-                  title: Text('Delete ${_posts[i].title} ?'),
-                  content: Text(
-                    'Are you sure want to delete ${_posts[i].title} ?',
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () {
-                        Navigator.pop(context, false);
-                      },
-                      child: Text('No'),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.pop(context, true);
-                      },
-                      child: Text('Yes'),
-                    ),
-                  ],
-                ),
-              ).then((result) async {
-                if(result != null && result){
-                  late Box<Post> openBox;
-
-                  final isOpen = Hive.isBoxOpen(c.postBox);
-
-                  if(isOpen){
-                    openBox = Hive.box(c.postBox);
-                  }else{
-                    openBox = await Hive.openBox(c.postBox);
-                  }
-
-                  await openBox.deleteAt(_posts[i].id);
-                  _posts
-                    ..clear()
-                    ..addAll(openBox.values.map((e) {
-                      final newPost = Post(
-                        e.title,
-                        e.author,
-                        e.content,
-                        id: e.key,
-                      );
-                      return newPost;
-                    }).toList());
-                  setState(() {});
-                }
-              });
-            },
-          ),
-        ),
-        separatorBuilder: (context, i) => Divider(),
-        itemCount: _posts.length,
-      ),
+        );
+      }),
     );
+  }
+
+  Future<void> _delete(int id) async {
+    late Box<Post> box;
+    if (Hive.isBoxOpen(c.postBox)) {
+      box = Hive.box(c.postBox);
+    } else {
+      box = await Hive.openBox(c.postBox);
+    }
+    await box.delete(id);
+    _refreshData();
+  }
+
+  Future<void> _refreshData() async {
+    late Box<Post> box;
+    if (Hive.isBoxOpen(c.postBox)) {
+      box = Hive.box(c.postBox);
+    } else {
+      box = await Hive.openBox(c.postBox);
+    }
+    _posts
+      ..clear()
+      ..addAll(box.values.map((e) {
+        final newPost = Post(
+          e.title,
+          e.author,
+          e.content,
+          id: e.key,
+        );
+        return newPost;
+      }).toList());
+    setState(() {});
   }
 }
